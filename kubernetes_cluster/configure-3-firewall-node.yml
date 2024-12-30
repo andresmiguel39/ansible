@@ -1,0 +1,26 @@
+- hosts: nodes
+  name: Configure k8s firewall nodes
+  become: yes
+  tasks:
+    - fail:
+       msg: "OS should be Rocky, not {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      when: ansible_distribution != 'Rocky' or ansible_distribution_version != '8.10' 
+
+    - name: Change the SELinux mode to permissive with the setenforce command.
+      shell: |
+        sudo setenforce 0
+
+    - name: Enter the following sed command to make changes to the SELinux configuration
+      shell: |
+        sudo sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/sysconfig/selinux
+
+    - name: Enable ports in firewall
+      shell: |
+        sudo firewall-cmd --permanent --add-port=179/tcp
+        sudo firewall-cmd --permanent --add-port=10250/tcp
+        sudo firewall-cmd --permanent --add-port=30000-32767/tcp
+        sudo firewall-cmd --permanent --add-port=4789/udp
+
+    - name: Reload firewall
+      shell: | 
+        sudo firewall-cmd --reload 

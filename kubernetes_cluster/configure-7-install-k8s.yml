@@ -1,0 +1,15 @@
+- hosts: all
+  name: Install k8s
+  become: yes
+  tasks:
+    - fail:
+       msg: "OS should be Rocky, not {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      when: ansible_distribution != 'Rocky' or ansible_distribution_version != '8.10'
+     
+    - name: install kubernetes
+      shell: |
+           sudo dnf install -y kubelet kubeadm kubectl
+      register: install
+
+    - debug: msg="{{ install.stdout }}"
+

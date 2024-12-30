@@ -1,0 +1,72 @@
+- hosts: all 
+  name: Configure k8s dependencies
+  become: yes
+  tasks:
+    - fail:
+       msg: "OS should be Rocky, not {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      when: ansible_distribution != 'Rocky' or ansible_distribution_version != '8.10'
+
+    - name: Clear kubernetes repo
+      shell: |
+        sudo rm -rf /etc/yum.repos.d/kubernetes.repo
+
+    - name: Update YUM packages
+      yum:
+        update_cache: yes
+
+    - name: Add repo for docker-ce.
+      shell: |
+        sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+    - name: Refresh the local repository information.
+      shell: |        
+        sudo dnf makecache
+
+    - name: Install the containerd.io package.
+      shell: |
+        sudo dnf install -y containerd.io
+
+    - name: Back up the default configuration file for containerd.
+      shell: |
+        sudo cp -n /etc/containerd/config.toml /etc/containerd/config.toml.bak
+
+    - name: Create a new file with the default template.
+      shell: |
+        containerd config default > ~/config.toml
+
+    - name: Find the SystemdCgroup field and change its value to true.
+      lineinfile:
+        path: ~/config.toml
+        regexp: '^(.*)SystemdCgroup \= false(.*)$' 
+        line: '            SystemdCgroup = true' 
+        backrefs: yes 
+    
+    - name: Place the new file in the /etc/containerd directory
+      shell: |         
+        sudo mv ~/config.toml /etc/containerd/config.toml
+
+    - name: Enable the Containerd service and start it
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+        daemon-reload: yes
+
+    - name: Add the two modules required by the container runtime.
+      blockinfile:
+        path: /etc/modules-load.d/k8s.conf
+        create: true
+        block: |
+             overlay
+             br_netfilter
+
+    - name: Add the modules to the system using the modprobe command.
+      shell: |
+        sudo modprobe overlay
+
+    - name: Add the modules to the system using the modprobe command.
+      shell: | 
+        sudo modprobe br_netfilter
+
+
+

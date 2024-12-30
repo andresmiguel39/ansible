@@ -1,0 +1,31 @@
+- hosts: all
+  name: Configure k8s
+  become: yes
+  tasks:
+    - fail:
+       msg: "OS should be Rocky, not {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      when: ansible_distribution != 'Rocky' or ansible_distribution_version != '8.10'
+
+    - name: clear k8s repo file
+      shell: |
+        sudo rm -rf /etc/yum.repos.d/kubernetes.rep
+
+    - name: create k8s repo file
+      file:
+        path: "/etc/yum.repos.d/kubernetes.repo"
+        state: "touch"
+
+    - name: Write repository information in the kube repo file
+      blockinfile:
+        path: "/etc/yum.repos.d/kubernetes.repo"
+        block: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl=https://pkgs.k8s.io/core:/stable:/v1.32/rpm/
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://pkgs.k8s.io/core:/stable:/v1.32/rpm/repodata/repomd.xml.key
+
+    - name: Prepare k8s repos
+      shell: | 
+        sudo dnf makecache

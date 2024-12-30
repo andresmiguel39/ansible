@@ -1,0 +1,8 @@
+---
+- import_playbook: configure-1-initial.yml  
+- import_playbook: configure-2-firewall-cp.yml  
+- import_playbook: configure-3-firewall-node.yml
+- import_playbook: configure-4-networking.yml
+- import_playbook: configure-5-swapoff.yml
+- import_playbook: configure-6-prepare-k8s.yml
+- import_playbook: configure-7-install-k8s.yml
